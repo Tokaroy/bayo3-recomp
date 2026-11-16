@@ -449,12 +449,16 @@ bool init() {
     p_vkCreateSemaphore(g_device, &sci, nullptr, &g_rendered);
 
     // A busy submit reached 67 MB: the 2048x8192 glyph atlas's first upload (R8 widened to RGBA8), which now has a
-    // staging buffer of its own (nvn_upload.cpp); the scripted run's other submits stay under ~12 MB. Android: 64 MB
-    // (docs/archive/nvn/android-perf/PIPELINES-1810.md: 0 "upload buffer full" lines at 64 and at 32 MB on the PC; staging_wanted
+    // staging buffer of its own (nvn_upload.cpp); the scripted run's other submits stay under ~12 MB (staging_wanted
     // spills bigger uploads to staging buffers in proportion to the ring).
     {
 #if defined(__ANDROID__)
-        uint64_t ring_mb = 64;
+        // 64 MB was too small: Bayonetta 3's title scene uploads ~32 MB a frame, and with the frames still in flight
+        // the ring filled, a submit wrote over its own data and the GPU watchdog stopped the game before the title
+        // (Snapdragon 8 Gen 2, 2026-11-16: 64 MB fails every time, 128 and 256 MB hold 30 fps with no overflow).
+        // 256 MB where the phone has the memory for it (8 GB or more), else 128.
+        const uint64_t ram_mb = uint64_t(sysconf(_SC_PHYS_PAGES)) * uint64_t(sysconf(_SC_PAGESIZE)) >> 20;
+        uint64_t ring_mb = ram_mb >= 7000 ? 256 : 128;
 #else
         uint64_t ring_mb = 256;
 #endif
