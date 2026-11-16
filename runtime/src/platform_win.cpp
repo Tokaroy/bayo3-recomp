@@ -507,82 +507,6 @@ const uint8_t* settings_panel(uint32_t target_h, uint32_t& w, uint32_t& h, uint6
     return g_panel_rgba.data();
 }
 
-// ---- Discord Rich Presence (NX_DISCORD_APP_ID) ---------------------------------------------------------------------
-// The running Discord client's local IPC: \\.\pipe\discord-ipc-<0..9>, frames of {uint32 opcode, uint32 length, JSON}.
-// A handshake (opcode 0) with the application id, then SET_ACTIVITY (opcode 1): what is being played and since when.
-// The id is a Discord application the player registers (its name is what Discord shows); none is built in, so the
-// presence is off until b3.conf has discord_app_id=<id>. Discord not running: tried again every 15 s, silently.
-namespace {
-
-bool discord_send(HANDLE pipe, uint32_t op, const std::string& json) {
-    std::string frame(8, '\0');
-    const uint32_t len = uint32_t(json.size());
-    std::memcpy(&frame[0], &op, 4), std::memcpy(&frame[4], &len, 4);
-    frame += json;
-    DWORD wrote = 0;
-    return WriteFile(pipe, frame.data(), DWORD(frame.size()), &wrote, nullptr) && wrote == frame.size();
-}
-
-bool discord_read(HANDLE pipe, std::string& json) {
-    uint32_t head[2];
-    DWORD got = 0;
-    if (!ReadFile(pipe, head, 8, &got, nullptr) || got != 8 || head[1] > (1u << 20)) return false;
-    json.assign(head[1], '\0');
-    return head[1] == 0 || (ReadFile(pipe, json.data(), head[1], &got, nullptr) && got == head[1]);
-}
-
-void discord_thread(std::string app_id) {
-    // Program 1 is the Bayonetta Origins prologue the hub's picture book starts; the presence says which one runs.
-    const bool book = nx::game::kInfo.program_id == 0x01004a4010fea001ull;
-    const long long start = (long long)std::time(nullptr);
-    bool said = false, missing_said = false;
-    log("discord: presence on (application %s)", app_id.c_str());
-    for (;;) {
-        HANDLE pipe = INVALID_HANDLE_VALUE;
-        DWORD error = 0;
-        for (int k = 0; k < 10 && pipe == INVALID_HANDLE_VALUE; k++) {
-            const std::wstring name = L"\\\\.\\pipe\\discord-ipc-" + std::to_wstring(k);
-            pipe = CreateFileW(name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
-            if (pipe == INVALID_HANDLE_VALUE && k == 0) error = GetLastError();
-        }
-        if (pipe == INVALID_HANDLE_VALUE && !missing_said)
-            log("discord: no Discord client running (%lu); trying every 15 s", error), missing_said = true;
-        if (pipe != INVALID_HANDLE_VALUE) {
-            std::string reply;
-            const std::string activity =
-                std::string("{\"cmd\":\"SET_ACTIVITY\",\"nonce\":\"1\",\"args\":{\"pid\":") +
-                std::to_string(GetCurrentProcessId()) + ",\"activity\":{\"details\":\"" +
-                (book ? "The Old Picture Book" : "Bayonetta 3") + "\",\"state\":\"" +
-                (book ? "Bayonetta Origins prologue" : "Playing") + "\",\"timestamps\":{\"start\":" +
-                std::to_string(start) + "}}}}";
-            if (discord_send(pipe, 0, "{\"v\":1,\"client_id\":\"" + app_id + "\"}") && discord_read(pipe, reply) &&
-                discord_send(pipe, 1, activity) && discord_read(pipe, reply)) {
-                if (!said) log("discord: presence set (%s)", reply.find("\"ERROR\"") == std::string::npos ? "ok" : reply.c_str());
-                said = true;
-                for (;;) {  // keep the pipe open: Discord clears the activity when it closes
-                    Sleep(15000);
-                    if (!discord_send(pipe, 1, activity) || !discord_read(pipe, reply)) break;
-                }
-            }
-            CloseHandle(pipe);
-        }
-        Sleep(15000);
-    }
-}
-
-void discord_start() {
-    const char* id = std::getenv("NX_DISCORD_APP_ID");
-    if (!id || !*id || headless()) return;
-    for (const char* c = id; *c; c++)
-        if (!std::isdigit(static_cast<unsigned char>(*c))) {
-            log("discord: NX_DISCORD_APP_ID must be the application's numeric id");
-            return;
-        }
-    std::thread(discord_thread, std::string(id)).detach();
-}
-
-}  // namespace
-
 static LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     switch (msg) {
         case WM_CLOSE:
@@ -681,7 +605,6 @@ static void window_thread(std::atomic<bool>* ready) {
     g_window = CreateWindowW(wc.lpszClassName, (widen(nx::game::kInfo.title) + L" (Switch recomp)  -  F11: fullscreen").c_str(), style,
                              std::max(0, x), std::max(0, y), w, h, nullptr, nullptr, wc.hInstance, nullptr);
     if (const char* f = std::getenv("NX_FULLSCREEN"); f && *f == '1' && !headless()) toggle_fullscreen(g_window);
-    discord_start();
     if (!headless()) {  // always: the settings panel can turn the mouse camera on later
         RAWINPUTDEVICE rid{0x01, 0x02, 0, g_window};  // generic desktop, mouse
         if (!RegisterRawInputDevices(&rid, 1, sizeof rid)) log("input: no raw mouse input (%lu)", GetLastError());

@@ -719,7 +719,7 @@ class Launcher(tk.Tk):
             return box
         var.trace_add('write', lambda *_a: self._refresh_status())
         return Field(self.canvas, var, width=12 if setting.kind == 'int' else 30,
-                     placeholder=setting.hint or ('Off' if setting.key == 'discord_app_id' else 'Default'))
+                     placeholder=setting.hint or 'Default')
 
     # -- layout -------------------------------------------------------------------------------------------------------
     def _schedule_layout(self):

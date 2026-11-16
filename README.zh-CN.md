@@ -37,7 +37,6 @@
 | **多种输入** | 手柄（任天堂或 Xbox 键位）、键盘鼠标（每个输入都可以重新绑定），以及 Android 上的触屏 |
 | **Steam Deck** | SteamOS 上不用安装任何东西。启动器的 Desktop shortcut 按钮生成一个可以添加到 Steam 的入口，`--play` 可在游戏模式下直接进游戏 |
 | **更新保留已有构建** | 换新版本后，Update 只重做有变化的部分，不用重新跑整个安装 |
-| **Discord Rich Presence** | 可选，Windows 上可用，需要你自己的 Discord 应用 id |
 
 每一项的具体用法见[游玩指南](docs/PLAYING.md)。
 

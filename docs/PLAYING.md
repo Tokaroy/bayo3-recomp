@@ -207,8 +207,7 @@ recompilations of this game offer it as a `cutscene_fps` option). Pre-rendered m
 `NX_HONOR_PRESENT_INTERVAL=1` restores the console's pacing.
 
 In the picture book's prologue, + offers to close the book; that returns to Bayonetta 3, where Continue goes back to
-the hub. For Discord Rich Presence, create an application at discord.com/developers (its name is what your friends
-see) and put its numeric id in `private/b3.conf` as `discord_app_id=`.
+the hub.
 
 ### The developer route (Git Bash)
 

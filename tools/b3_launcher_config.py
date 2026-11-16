@@ -140,9 +140,6 @@ SETTINGS = (
     Setting('handheld', 'Handheld mode', 'bool', 'system', default='0',
             help='The game renders 1280 x 720 instead of docked 1600 x 900 (a lighter GPU load).'),
     Setting('log', 'Log file', 'text', 'system', help='Default: <repo>/private/b3.log.'),
-    Setting('discord_app_id', 'Discord application id', 'text', 'system',
-            help='Windows: Rich Presence ("Bayonetta 3" or "The Old Picture Book", and since when) through your own '
-                 'Discord application (discord.com/developers). Empty: off.'),
     Setting('mute', 'Mute', 'bool', 'audio', default='0', help='No audio output.'),
     Setting('render_res', 'Display resolution answer', 'choice', 'advanced', choices=RENDER_RES,
             help='NX_RENDER_RES: the resolution reported to the game. Other ports render at it; Bayonetta 3 renders '

@@ -55,9 +55,6 @@ handheld=0               # 1: the game renders 1280x720 (handheld) instead of 16
 
 gpu_clock=               # Optional Steam Deck GPU clock in MHz; empty leaves the default clock unchanged.
 
-discord_app_id=          # Windows: Discord Rich Presence through your own Discord application's numeric id
-                         # (discord.com/developers: New Application; its name is what Discord shows). Empty: off
-
 # ---- Audio -----------------------------------------------------------------------------------
 mute=0                   # 1: no audio output
 

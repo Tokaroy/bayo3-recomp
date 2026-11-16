@@ -37,7 +37,6 @@ These come from different scenes and conditions and are not directly comparable.
 | **Any input** | Controller with Nintendo or Xbox button layout, keyboard and mouse with every input rebindable, and touch controls on Android |
 | **Steam Deck** | Nothing to install on SteamOS. The launcher's Desktop shortcut button makes an entry you can add to Steam, and `--play` starts the game directly from Game Mode |
 | **Updates keep your build** | After a new release, Update remakes only what changed instead of running the whole setup again |
-| **Discord Rich Presence** | Optional, on Windows, with your own Discord application id |
 
 Step-by-step use of each one is in the [playing guide](docs/PLAYING.md).
 
