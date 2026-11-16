@@ -18,7 +18,7 @@
   <img src="docs/images/launcher-android.jpg" width="49%" alt="Bayonetta 3 Recomp 的 Android 启动器：游戏数据检查、芯片信息和性能档位">
 </p>
 
-| 原生，不模拟 | Windows 中位 89 fps | 手机 54–60 fps | Steam Deck 约 36 fps | 三平台一套代码 | 手柄 / 键鼠 / 触屏 |
+| 原生，不模拟 | Windows 中位 89 fps | 手机 54–60 fps | Steam Deck 50–60 fps | 三平台一套代码 | 手柄 / 键鼠 / 触屏 |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | 客体代码全部重编译成 C++ | 序章战斗，720p，轻场景到 120 | Snapdragon 8 Elite，序章战斗不锁帧 | 15 W，GPU 1600 MHz，720p | x86-64 和 ARM64 共用一套框架 | 触屏仿双 Joy-Con 布局 |
 
@@ -51,7 +51,7 @@
 | **模拟器** | 不使用。游戏代码提前重编译，着色器离线转换为 SPIR-V |
 | **游戏文件** | 不附带。需要你自行合法取得 1.2.0 的 ExeFS 和 RomFS |
 | **状态** | 可玩；尚未验证完整通关。序章剧情转场有加载问题 |
-| **性能** | Windows 中位 89.2 fps；Steam Deck 约 36 fps；Snapdragon 8 Elite 54–60 fps。场景和条件不同 |
+| **性能** | Windows 中位 89.2 fps；Steam Deck 50–60 fps；Snapdragon 8 Elite 54–60 fps。场景和条件不同 |
 | **许可** | 组合作品 GPL-3.0-or-later；原始 MIT 部分见 [LICENSE-MIT](LICENSE-MIT) |
 | **仓库** | https://github.com/aoxzh/bayo3-recomp |
 | **最后更新** | 2026-11-16 |
@@ -94,7 +94,7 @@ macOS 也有构建，但还没有完整测试，这里先不列入支持范围�
 | 平台与硬件 | 结果 | 条件 |
 |---|---|---|
 | Windows，Intel Core Ultra X7 358H + Arc B390 核显 | 序章战斗 90 秒：中位 **89.2 fps**，p10 59.3，p90 105.5。轻场景 **120**，更重的战斗约 **57**。第八章 75–98 | 掌机模式 720p，120 Hz；驱动 32.0.101.9150，Vulkan 1.4，Release 构建 |
-| Steam Deck，AMD Van Gogh，RADV | 序章战斗中位 **36.3–36.8**，p10 30.2–34.4，最低 26.6 | 掌机模式 720p，15 W，GPU 锁 1600 MHz，不锁帧，三次运行 |
+| Steam Deck，AMD Van Gogh，RADV | 完整打通序章：中位 **60 fps**，p10 57，最低 36（238 个一秒窗口）；实际游玩大多 **50–60** | 掌机模式 720p，60 Hz 屏幕，默认设置 |
 | Android，Snapdragon 8 Elite + Adreno 830 | 序章战斗不锁帧，3 分钟里大部分窗口 **54–60 fps** | 应用已加入系统的游戏列表；这次测量在充电。厂商不放开 CPU 频率时只有 24–58 fps |
 | Android，Snapdragon 8 Gen 2 + Adreno 740 | 锁 30：冷机中位 **30.0**；40 帧节拍：前约 2.4 分钟稳定 **40.0**，GPU 降频后约 28–33 | 不充电；电池约 39 °C 时后段 27.3–28.6 |
 

@@ -38,6 +38,16 @@ bool movie_fill(uint32_t format, uint32_t tex_w, uint32_t tex_h, uint32_t region
 enum class MoviePlane { NotOurs, Repeated, Nothing };
 MoviePlane movie_plane_fallback(uint32_t format, uint32_t tex_w, uint32_t tex_h, uint8_t* data, uint64_t row_stride);
 
+// The host movie::Decoder (movie_host_decoder.cpp): the frame of the film opened as `file_handle` that is due at the
+// game's presentation time, as tight NV12 (w x h luma, then w x h/2 interleaved chroma) into `dst`. Returns the bytes
+// written, 0 when the film has no frame (or no session, or the buffer is too small). From then on the film's plane
+// uploads are the game's own and the texel-write path above leaves them alone.
+size_t movie_host_frame(uint64_t file_handle, int64_t pts_us, uint32_t w, uint32_t h, uint8_t* dst, size_t capacity);
+// The host decoder took a video track: the texel-write paths above stop touching movie planes for the rest of the run.
+void movie_host_decoding();
+// The film's encoded size, for a decoder whose track format did not say.
+bool movie_film_size(uint64_t file_handle, uint32_t& w, uint32_t& h);
+
 // ---- The guest movie layer's memory resource, read-only ----------------------------------------------------------
 //
 // docs/archive/MOVIE-EV0005.md §21. Everything the game's movie layer allocates — the FileSource preload window, the

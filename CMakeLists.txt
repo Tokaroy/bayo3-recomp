@@ -166,7 +166,7 @@ if(NX_TESTS AND NOT ANDROID)
                     COMMAND "${CMAKE_COMMAND}" -E env "CXX=${CMAKE_CXX_COMPILER}"
                         "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/bayonetta3_nvn_${check}_test.py")
             endforeach()
-            foreach(check IN ITEMS b3_scene_clock movie_timing movie_frame_source movie_decoder_pipe b3_generation_hooks audio_playback)
+            foreach(check IN ITEMS b3_scene_clock b3_debug movie_host_queue movie_timing movie_frame_source movie_decoder_pipe b3_generation_hooks audio_playback)
                 add_test(NAME ${check}
                     COMMAND "${CMAKE_COMMAND}" -E env "CXX=${CMAKE_CXX_COMPILER}"
                         "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/${check}_test.py")
@@ -468,11 +468,12 @@ if(NX_GAME STREQUAL "bayonetta3" OR NX_GAME STREQUAL "bayonetta3prog1")
     list(APPEND NX_RUNTIME_SOURCES runtime/src/hle_fiber.cpp runtime/src/svc_opus.cpp runtime/src/movie.cpp
          runtime/src/hle_movie.cpp runtime/src/b3_scene_clock.cpp runtime/src/b3_fps_counters.cpp
          runtime/src/b3_model_lod.cpp runtime/src/b3_film_grain.cpp
+         runtime/src/b3_debug.cpp
          runtime/src/b3_guest_fastpaths.cpp)
     # The movie:: vtable seam (docs/LINUX-VERIFICATION-2026-10-22.md §8): by default only the frame-fetch observer
     # (see the NX_MOVIE_VTABLE option above).
     if(NX_MOVIE_VTABLE)
-        list(APPEND NX_RUNTIME_SOURCES runtime/src/hle_movie_api.cpp)
+        list(APPEND NX_RUNTIME_SOURCES runtime/src/hle_movie_api.cpp runtime/src/movie_host_decoder.cpp)
     endif()
 endif()
 file(GLOB NX_GAME_SOURCES CONFIGURE_DEPENDS "${NX_GAME_DIR}/*.cpp")

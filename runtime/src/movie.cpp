@@ -152,6 +152,9 @@ struct Session {
     // How many plane writes this movie actually served. The acceptance evidence for a cutscene is exactly this
     // counter: `ev0000` reaches 4 digits per plane, `ev0005` currently stays at 0 (docs/archive/MOVIE-EV0005.md).
     std::atomic<uint64_t> fills_luma{0}, fills_chroma{0};
+    // Served through the host movie::Decoder (movie_host_frame): the game copies the frame into its planes itself, so
+    // its plane uploads are ordinary uploads and the texel-write path below must leave them alone.
+    std::atomic<bool> host_served{false};
     // Serializes this film's own plane fills. A fill copies out of `current` without holding the session lock and may
     // also stop and restart this film's decoder; fills of different films do not wait for each other.
     std::mutex fill_m;
@@ -299,9 +302,9 @@ std::vector<std::shared_ptr<Session>> plane_candidates(bool luma, uint32_t tex_w
         out.push_back(s);
     };
     if (!luma && g_picture_handle)
-        if (auto p = find_session(g_picture_handle); p && !p->stopping) add(p);
+        if (auto p = find_session(g_picture_handle); p && !p->stopping && !p->host_served) add(p);
     if (g_pending_frame.file_handle)
-        if (auto p = find_session(g_pending_frame.file_handle); p && !p->stopping) add(p);
+        if (auto p = find_session(g_pending_frame.file_handle); p && !p->stopping && !p->host_served) add(p);
     // A finished film stays a candidate: its last frame is the picture the game keeps uploading after the cutscene
     // ends, so dropping it would black out the screen between films. It ranks last, and only a luma write may restart
     // it (see movie_fill), because restarting a film to answer a chroma write would serve a frame of the wrong pair.
@@ -309,6 +312,7 @@ std::vector<std::shared_ptr<Session>> plane_candidates(bool luma, uint32_t tex_w
     std::vector<int> ranks(g_sessions.size(), -1);
     for (size_t i = 0; i < g_sessions.size(); i++) {
         Session& s = *g_sessions[i];
+        if (s.host_served) continue;  // the host decoder hands this film to the game directly
         std::lock_guard slk(s.m);
         if (s.stopping) continue;
         // Played out = decoded to the end AND every decoded frame already shown. Decoder EOF alone runs up to eight
@@ -764,7 +768,14 @@ static void copy_plane(const Session& s, bool luma, uint32_t tex_w, uint32_t tex
     for (uint32_t r = 0; r < tex_h; r++) std::memcpy(data + r * row_stride, from + size_t(r) * s.out_w, row_bytes);
 }
 
+// Set once the host movie::Decoder has taken a video track: from then on every film reaches the game through its own
+// decoder buffers, and its plane uploads are the game's copies of those frames. Rewriting them here would put another
+// film's picture (a pre-opened next cutscene) into the playing one.
+std::atomic<bool> g_host_decoding{false};
+void movie_host_decoding() { g_host_decoding.store(true, std::memory_order_relaxed); }
+
 MoviePlane movie_plane_fallback(uint32_t format, uint32_t tex_w, uint32_t tex_h, uint8_t* data, uint64_t row_stride) {
+    if (g_host_decoding.load(std::memory_order_relaxed)) return MoviePlane::NotOurs;
     if (format != kFmtR8 && format != kFmtRG8) return MoviePlane::NotOurs;
     const bool luma = format == kFmtR8;
     if (row_stride < (luma ? uint64_t(tex_w) : uint64_t(tex_w) * 2)) return MoviePlane::Nothing;
@@ -837,6 +848,38 @@ void note_no_frame(const Session& s, bool luma, const uint8_t* data) {
             (unsigned long long)other_plane.load(), (unsigned long long)chroma_alone.load());
 }
 
+// Restarts this film's decoder from its start at w x h (a new output size, or a rewind: the game asked for an earlier
+// time than the one it is at, as a loop does). The caller holds s.fill_m. False: no decoder could be started, and the
+// film is left stopping so it never serves again and the next open may evict it.
+bool restart_decoder(Session& s, uint32_t w, uint32_t h) {
+    s.stop();
+    {
+        // Session::stop() is terminal — a closed movie leaves `stopping` set, and that is what ends the reader
+        // thread. A respawn is not a close, so the flag has to be cleared before the new reader starts; without
+        // this it returned at its first frame push and the session served one frame (or none) forever.
+        std::lock_guard slk(s.m);
+        // Under the lock: plane_candidates() ranks every film by its size from another thread.
+        s.out_w = w;
+        s.out_h = h;
+        s.next_index = 0;
+        s.current.clear();
+        s.current_set = false;
+        s.current_pts_us = kNoPts;
+        s.t0_set = false;
+        s.rewind_requested = false;
+        s.stopping = false;
+        s.eof = false;
+        s.ring.clear();
+    }
+    if (!start_decoder(s)) {
+        std::lock_guard slk(s.m);
+        s.stopping = true;
+        return false;
+    }
+    log("movie: restarted decoder at %ux%u%s", w, h, s.guest_timing ? " following guest presentation time" : "");
+    return true;
+}
+
 // Copies one plane of this film's current frame into the guest buffer, and answers whether it did.
 //
 // `reshape` lets a luma write restart this film's decoder at the write's size: the game's planes are authoritative for
@@ -850,35 +893,8 @@ bool serve_plane(const std::shared_ptr<Session>& sp, bool luma, uint32_t tex_w, 
     std::lock_guard flk(s.fill_m);
     if (s.stopping) return false;
     if (luma && reshape && (s.out_w != tex_w || s.out_h != tex_h || s.rewind_requested)) {
-        s.stop();
-        {
-            // Session::stop() is terminal — a closed movie leaves `stopping` set, and that is what ends the reader
-            // thread. A respawn is not a close, so the flag has to be cleared before the new reader starts; without
-            // this it returned at its first frame push and the session served one frame (or none) forever.
-            std::lock_guard slk(s.m);
-            // Under the lock: plane_candidates() ranks every film by its size from another thread.
-            s.out_w = tex_w;
-            s.out_h = tex_h;
-            s.next_index = 0;
-            s.current.clear();
-            s.current_set = false;
-            s.current_pts_us = kNoPts;
-            s.t0_set = false;
-            s.rewind_requested = false;
-            g_pending_frame.luma_filled = false;
-            s.stopping = false;
-            s.eof = false;
-            s.ring.clear();
-        }
-        if (!start_decoder(s)) {
-            // No decoder, so this film can never serve again: keeps it out of the candidate list and lets the next
-            // open evict it. start_decoder() left nothing behind to release.
-            std::lock_guard slk(s.m);
-            s.stopping = true;
-            return false;
-        }
-        log("movie: restarted decoder at %ux%u%s", tex_w, tex_h,
-            s.guest_timing ? " following guest presentation time" : "");
+        g_pending_frame.luma_filled = false;
+        if (!restart_decoder(s, tex_w, tex_h)) return false;
     }
     // The write has to be one of THIS movie's planes: luma at the frame's size, chroma at half of
     // it. The old guard used `tex_w < 1000` as a stand-in for that test, so the 800x450 chroma
@@ -945,6 +961,7 @@ bool serve_plane(const std::shared_ptr<Session>& sp, bool luma, uint32_t tex_w, 
 bool movie_fill(uint32_t format, uint32_t tex_w, uint32_t tex_h, uint32_t region_w, uint32_t region_h,
                 uint8_t* data, uint64_t row_stride) {
     if (format != kFmtR8 && format != kFmtRG8) return false;
+    if (g_host_decoding.load(std::memory_order_relaxed)) return false;
     if (region_w != tex_w || region_h != tex_h) return false;  // whole-plane writes only
     const bool luma = format == kFmtR8;
     if (!data || row_stride < (luma ? uint64_t(tex_w) : uint64_t(tex_w) * 2)) return false;
@@ -998,6 +1015,77 @@ bool movie_fill(uint32_t format, uint32_t tex_w, uint32_t tex_h, uint32_t region
     // texture on its own; movie_plane_fallback may repeat the last picture instead.
     note_no_frame(*candidates.front(), luma, data);
     return false;
+}
+
+size_t movie_host_frame(uint64_t file_handle, int64_t pts_us, uint32_t w, uint32_t h, uint8_t* dst, size_t capacity) {
+    if (!file_handle || pts_us < 0 || !dst || !w || !h || (w | h) & 1) return 0;
+    const size_t bytes = size_t(w) * h * 3 / 2;
+    if (capacity < bytes) return 0;
+    std::shared_ptr<Session> sp;
+    {
+        std::lock_guard lk(g_movie);
+        sp = find_session(file_handle);
+    }
+    if (!sp) return 0;
+    Session& s = *sp;
+    s.host_served = true;
+    std::lock_guard flk(s.fill_m);
+    if (s.stopping) return 0;
+    bool restart;
+    {
+        std::lock_guard slk(s.m);
+        restart = s.out_w != w || s.out_h != h || (s.guest_timing && pts_us < s.target_pts_us);
+    }
+    if (restart && !restart_decoder(s, w, h)) return 0;
+    // The game's time paces the reader: frames older than the one due are dropped, and the reader decodes ahead of it.
+    // A frame due now that is not decoded yet is waited for, briefly once the film has a picture (that picture is
+    // shown again rather than holding the game), longer for the first one (a decoder takes a moment to start).
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(s.current_set ? 20 : 400);
+    std::vector<uint8_t> retired;
+    for (;;) {
+        bool done = false;
+        {
+            std::lock_guard slk(s.m);
+            s.guest_timing = true;
+            s.target_pts_us = pts_us;
+            if (prune_frames(s)) s.space.notify_one();
+            const bool due = !s.ring.empty() && s.ring.front().pts_us != kNoPts && s.ring.front().pts_us <= pts_us;
+            if (due) {
+                if (!s.current_set || s.current_index != s.ring.front().index) {
+                    retired = std::move(s.current);
+                    s.current = std::move(s.ring.front().nv12);
+                    s.current_index = s.ring.front().index;
+                    s.current_pts_us = s.ring.front().pts_us;
+                    s.current_set = true;
+                }
+                s.ring.pop_front();
+                s.space.notify_one();
+                done = true;
+            } else if (s.stopping || s.eof || (s.current_set && !s.ring.empty())) {
+                done = true;  // nothing newer is due (or will come): the current picture stands
+            }
+        }
+        if (done || std::chrono::steady_clock::now() >= deadline) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    if (s.current.size() < bytes) return 0;
+    std::memcpy(dst, s.current.data(), bytes);
+    s.fills_chroma.fetch_add(1, std::memory_order_relaxed);
+    const uint64_t k = s.fills_luma.fetch_add(1, std::memory_order_relaxed) + 1;
+    if (k == 1 || k % 300 == 0)
+        log("movie: %s frame #%llu to the game's decoder buffer (%ux%u, asked %lld us, decoded frame %llu at %lld us)",
+            s.guest.c_str(), (unsigned long long)k, w, h, (long long)pts_us, (unsigned long long)s.current_index,
+            (long long)s.current_pts_us);
+    return bytes;
+}
+
+bool movie_film_size(uint64_t file_handle, uint32_t& w, uint32_t& h) {
+    std::lock_guard lk(g_movie);
+    const auto s = find_session(file_handle);
+    if (!s || !s->src_w || !s->src_h) return false;
+    w = s->src_w;
+    h = s->src_h;
+    return true;
 }
 
 }  // namespace nx

@@ -250,8 +250,13 @@ ServiceRegistrar r_nvdrv("nvdrv", [] {
             return 2u;
         }
         {
+            // The lowest free number, as a real fd table hands out. (The Prologue -> ev0020 hang showed NvMMLite
+            // closing a new nvdec channel at once, at fd 21; with reused numbers it does the same at fd 4, so the
+            // number was not the cause. Video films no longer reach NvMMLite: movie_host_decoder.cpp.)
             std::lock_guard g(st->m);
-            fd = st->next_fd++;
+            fd = 1;
+            while (st->fds.count(fd)) ++fd;
+            st->next_fd = std::max(st->next_fd, fd + 1);
             st->fds[fd] = name;
         }
         log("nvdrv: open %s -> fd %u", name, fd);
@@ -261,8 +266,18 @@ ServiceRegistrar r_nvdrv("nvdrv", [] {
     };
     s.cmds[1] = [st](IpcCtx& c) { return do_ioctl(*st, c); };  // Ioctl
     s.cmds[2] = [st](IpcCtx& c) {                              // Close(fd)
-        std::lock_guard g(st->m);
-        st->fds.erase(c.arg<uint32_t>(0));
+        const uint32_t fd = c.arg<uint32_t>(0);
+        std::string name;
+        size_t decoders = 0;
+        {
+            std::lock_guard g(st->m);
+            if (auto it = st->fds.find(fd); it != st->fds.end()) name = it->second, st->fds.erase(it);
+            for (const auto& [f, n] : st->fds) decoders += n.find("nvdec") != std::string::npos;
+        }
+        // Paired with the open line: a film's decoder that never gives its channels back shows as opens without
+        // closes, and the count says how many nvdec channels are still held when the next film opens its own.
+        if (name.find("nvdec") != std::string::npos || name.find("vic") != std::string::npos)
+            log("nvdrv: close %s fd %u (%zu nvdec channels still open)", name.c_str(), fd, decoders);
         return 0u;
     };
     s.cmds[3] = [](IpcCtx& c) {  // Initialize(process, transfer memory, size)

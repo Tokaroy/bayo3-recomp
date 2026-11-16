@@ -18,7 +18,7 @@ GPL-3.0-or-later for the combined work; original MIT portions under [LICENSE-MIT
   <img src="docs/images/launcher-android.jpg" width="49%" alt="Bayonetta 3 Recomp Android launcher: game data checks, chip info and performance profiles">
 </p>
 
-| Native, not emulated | Windows median 89 fps | Phone 54–60 fps | Steam Deck ~36 fps | One codebase, three platforms | Pad / keyboard & mouse / touch |
+| Native, not emulated | Windows median 89 fps | Phone 54–60 fps | Steam Deck 50–60 fps | One codebase, three platforms | Pad / keyboard & mouse / touch |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | All guest code recompiled to C++ | Prologue combat, 720p; light scenes reach 120 | Snapdragon 8 Elite, Prologue combat, uncapped | 15 W, GPU at 1600 MHz, 720p | x86-64 and ARM64 share one framework | Touch layout modelled on two Joy-Cons |
 
@@ -51,7 +51,7 @@ Step-by-step use of each one is in the [playing guide](docs/PLAYING.md).
 | **Emulation** | None. Game code is recompiled ahead of time; shaders are translated offline to SPIR-V |
 | **Game files** | Not included. You need your own legally obtained 1.2.0 ExeFS and RomFS |
 | **Status** | Playable; a full playthrough is not verified. The Prologue story transition has a loading issue |
-| **Performance** | Windows median 89.2 fps; Steam Deck about 36 fps; Snapdragon 8 Elite 54–60 fps. Different scenes and conditions |
+| **Performance** | Windows median 89.2 fps; Steam Deck 50–60 fps; Snapdragon 8 Elite 54–60 fps. Different scenes and conditions |
 | **License** | GPL-3.0-or-later for the combined work; original MIT portions under [LICENSE-MIT](LICENSE-MIT) |
 | **Repository** | https://github.com/aoxzh/bayo3-recomp |
 | **Last updated** | 2026-11-16 |
@@ -94,7 +94,7 @@ There is also a macOS build, but it has not been fully tested and is not listed 
 | Platform and hardware | Result | Conditions |
 |---|---|---|
 | Windows, Intel Core Ultra X7 358H with Arc B390 iGPU | 90-second Prologue fight: median **89.2 fps**, p10 59.3, p90 105.5. Light scenes **120**; a heavier fight about **57**. Chapter 8: 75–98 | Handheld 720p at 120 Hz; driver 32.0.101.9150, Vulkan 1.4, Release build |
-| Steam Deck, AMD Van Gogh, RADV | Prologue combat median **36.3–36.8**, p10 30.2–34.4, minimum 26.6 | Handheld 720p, 15 W, GPU fixed at 1600 MHz, uncapped, three runs |
+| Steam Deck, AMD Van Gogh, RADV | Whole Prologue played through: median **60 fps**, p10 57, minimum 36 (238 one-second windows); mostly **50–60** in play | Handheld 720p, 60 Hz screen, default settings |
 | Android, Snapdragon 8 Elite with Adreno 830 | Prologue combat uncapped: most windows **54–60 fps** over 3 minutes | App added to the system's game list; this run was charging. With the vendor holding CPU clocks down: 24–58 fps |
 | Android, Snapdragon 8 Gen 2 with Adreno 740 | Capped at 30: cold median **30.0**. Paced at 40: a steady **40.0** for about 2.4 minutes, then about 28–33 once the GPU clock is limited | Not charging; 27.3–28.6 late in combat at about 39 °C battery |
 

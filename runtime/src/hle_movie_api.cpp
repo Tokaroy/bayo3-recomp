@@ -33,6 +33,7 @@
 #include "kernel.h"
 #include "movie.h"  // nx::movie_ledger: the resource walk/formatting, unit-tested in tests/movie_ledger_test.cpp
 #include "movie_frame_source.h"
+#include "movie_host_decoder.h"
 #include "platform.h"
 
 namespace nx {
@@ -534,7 +535,7 @@ void stream_preload_report(uint64_t reader, uint64_t asked, uint64_t ret) {
     const uint64_t window = ld<uint64_t>(reader + kStreamWindowOffset);
     const uint64_t size = ld<uint64_t>(reader + kStreamSizeOffset);
     if (ret != 0) {
-        if (lines.fetch_add(1) >= 8) return;
+        if (lines.fetch_add(1) >= 256) return;  // every film of a long session: the pool's growth is the point
         log("movie: source open ok (reader %llx): file %llu B, window %llu B (guest asked %llu B), buffer %llx%s",
             (unsigned long long)reader, (unsigned long long)size, (unsigned long long)window,
             (unsigned long long)asked, (unsigned long long)buffer,
@@ -633,9 +634,9 @@ void install_decoder_probe();  // plat:: (defined with the other vtable installe
 // slot saved at install time, then log the answer and the string/int it returned.
 uint64_t g_find_string_real = 0, g_find_int32_real = 0;
 bool g_media_probes = false;
-// The default (NX_MOVIE_VTABLE unset): only movie::Decoder is patched, and only to observe the game's own frame fetch
-// (slot 15, movie_frame_source). Nothing in the game's behaviour changes: no other table, no stream preload window,
-// no host-sent events, no logging. The full study mode (log/1) patches everything as before. A run with the full mode
+// The default (NX_MOVIE_VTABLE unset): movie::Decoder is patched only to observe the game's own frame fetch (slot 15,
+// movie_frame_source), and the two SetDataSource slots plus the stream reader's open/read/close only to keep the
+// read-ahead window at 0 and log the movie pool (see movie_vtable_init). No host-sent events, no per-call logging. The full study mode (log/1) patches everything as before. A run with the full mode
 // stalled at the Prologue's post-ev0011 load (ev0011 never closed) while the frame-only mode is all the movie path
 // needs: the fetch names the film, its timestamp and the two plane buffers, so no film has to be guessed.
 bool g_frame_only = false;
@@ -1049,6 +1050,9 @@ void install_media_probes() {
 // A thunk for one (class, slot). Logs the caller, the call and its Result, then calls the game's original so
 // behaviour is unchanged.
 void dispatch(CPU& c, int which, int slot) {
+    // A video decoder is the host's (movie_host_decoder.cpp, the Witch-Time way): its slots never reach the game's
+    // NvMMLite implementation. Audio decoders, destructors and NX_MOVIE_DECODER=game fall through.
+    if (which == kWhichDecoder && movie_host::decoder_call(c, slot)) return;
     static const int cap = g_frame_only ? 0 : env_int("NX_MOVIE_VTABLE_CAP", kLogPerSlot);
     static const int bt_cap = g_frame_only ? 0 : env_int("NX_MOVIE_VTABLE_BT", 1);
     SlotState& s = g_slots[which][slot];
@@ -1417,6 +1421,7 @@ void patch_stream_reader(uint64_t reader) {
     if (verified) {
         g_controller.store(ctl, std::memory_order_relaxed);
         patch_controller(ctl);
+        movie_host::note_controller(ctl);
     }
     if (vt != patched) {
         int slots = 2, gaps = 0;
@@ -1432,7 +1437,10 @@ void patch_stream_reader(uint64_t reader) {
                 (unsigned long long)vt, slots, mod->info->name,
                 slots <= 2 ? "no module-resident slots" : "memory is not writable");
         } else {
-            const int n = patch_vtable(vt, slots, kWhichStream, kStreamThunks, "StreamReader", 2, true);
+            // The default mode needs only open (4), readAt (5) and close (6): the guard and the pool ledger.
+            const int n = g_frame_only
+                ? patch_vtable(vt, std::min(slots, 7), kWhichStream, kStreamThunks, "StreamReader", 4, true)
+                : patch_vtable(vt, slots, kWhichStream, kStreamThunks, "StreamReader", 2, true);
             if (n) {
                 patched = vt;
                 log("movie-vt: ClientStreamReader vtable at %llx (%d slots, module %s) patched from reader %llx "
@@ -1467,6 +1475,18 @@ void movie_vtable_init() {
         // movie::Decoder is patched at the first movie open (install_decoder_probe via movie_vtable_late_player), never
         // during boot: the boot-time NvMMLite path must not see a host thunk.
         g_frame_only = true;
+        // The read-ahead guard (MOVIE-EV0005 §20.1) still applies: every film otherwise takes a 2 MiB window from the
+        // fixed movie memory pool. (It was first suspected for the Prologue -> Chapter 1 loading hang; that one was
+        // NvMMLite's video setup failing on the fifth film, fixed by movie_host_decoder.cpp.) SetDataSource also hands
+        // the host decoder its controller. Only the two SetDataSource slots are redirected, so the reader is
+        // seen before its FileSource opens; patch_stream_reader then takes the reader's open/read/close slots (4-6).
+        // NX_MOVIE_PRELOAD=off leaves every table alone, as before.
+        if (preload_cap() != ~uint64_t(0) && module_at(kSubsdk0Base + kExtractorVtable)) {
+            patch_vtable(kSubsdk0Base + kExtractorVtable, kExtractorSlots, kWhichExtractor, kExtractorThunks,
+                         "Extractor", 17);
+            patch_vtable(kSubsdk0Base + kNnExtractorVtable, 5, kWhichNnExtractor, kNnExtractorThunks, "NnExtractor",
+                         4);
+        }
         return;
     }
     if (!m.empty() && m != "log" && m != "1") {
