@@ -6,7 +6,7 @@
 
 Play with a controller, keyboard and mouse, or touch. Desktop and phone each have a launcher, so the everyday settings and performance profiles need no config-file editing.
 
-**[Build & play](#getting-started)** · [Project facts](#project-facts) · [FAQ](#faq) · [Supported devices](#which-devices-are-supported) · [How it works](#how-it-works) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
+**[Build & play](#getting-started)** · [Features](#features) · [Project facts](#project-facts) · [FAQ](#faq) · [Supported devices](#which-devices-are-supported) · [How it works](#how-it-works) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
 GPL-3.0-or-later for the combined work; original MIT portions under [LICENSE-MIT](LICENSE-MIT) ([licensing](docs/LICENSING.md)) · Windows 10/11 x64 · Linux x86-64 (including Steam Deck) · Android 10+ arm64 with a Vulkan 1.3 GPU
 
@@ -24,6 +24,23 @@ GPL-3.0-or-later for the combined work; original MIT portions under [LICENSE-MIT
 
 These come from different scenes and conditions and are not directly comparable. Hardware, drivers and measurement conditions for each are under [Measured performance](#measured-performance) and in [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
+## Features
+
+| Feature | What you get |
+|---|---|
+| **No toolchain to install** | The release packages for Windows, Linux / Steam Deck and Android carry the tools. Your own device builds the game from your own dump; on Android the phone does it by itself, no PC needed |
+| **In-game settings panel** | F1 (or + and − together on a controller) opens it over the game: window mode, resolution, frame rate, v-sync, anisotropic filtering, FSR 1, model detail, film grain, controller layout, mouse camera and sound |
+| **Mods** | The launcher's Mods tab adds a mod from its .zip or folder, switches it on or off and sets the load order. File replacements in the Atmosphere, yuzu and Ryujinx layouts work as they are. Code patches (`.ips`, IPS32 and `.pchtxt` for 1.2.0) are compiled into the game on Windows and Linux: Play remakes only the patched code |
+| **Ultrawide (experimental)** | On 21:9 and 32:9 displays the 3D picture shows more at the sides (Hor+), menus, text and the HUD keep their shape, and pre-rendered movies stay 16:9 with black bars |
+| **More detail** | Every model at its finest level of detail, the game's film grain off, anisotropic filtering, and a larger window renders the game at that size |
+| **High refresh rates** | 90 and 120 Hz play at the right speed: the game's 60 Hz step and its frame-counted windows are converted to real time |
+| **Any input** | Controller with Nintendo or Xbox button layout, keyboard and mouse with every input rebindable, and touch controls on Android |
+| **Steam Deck** | Nothing to install on SteamOS. The launcher's Desktop shortcut button makes an entry you can add to Steam, and `--play` starts the game directly from Game Mode |
+| **Updates keep your build** | After a new release, Update remakes only what changed instead of running the whole setup again |
+| **Discord Rich Presence** | Optional, on Windows, with your own Discord application id |
+
+Step-by-step use of each one is in the [playing guide](docs/PLAYING.md).
+
 ## Project facts
 
 | Project fact | Detail |
@@ -38,7 +55,7 @@ These come from different scenes and conditions and are not directly comparable.
 | **Performance** | Windows median 89.2 fps; Steam Deck about 36 fps; Snapdragon 8 Elite 54–60 fps. Different scenes and conditions |
 | **License** | GPL-3.0-or-later for the combined work; original MIT portions under [LICENSE-MIT](LICENSE-MIT) |
 | **Repository** | https://github.com/aoxzh/bayo3-recomp |
-| **Last updated** | 2026-11-08 |
+| **Last updated** | 2026-11-16 |
 
 ## Build it with one sentence
 
@@ -172,7 +189,7 @@ Bayonetta 3 version 1.2.0 only. Preparation validates the ExeFS/RomFS identity a
 A 64-bit host with CMake 3.25+, a C++20 compiler, Python and the pinned dependencies, a Vulkan 1.3 driver, and the platform toolchain. Windows, Linux / Steam Deck and Android each have their own setup; the [build guide](docs/BUILD.md) lists the details.
 
 ### Does it support 4K, ultrawide or 120 fps?
-The launcher and runtime expose resolution, frame-rate cap, display rate, FSR 1 and anisotropic filtering settings. Above 60 Hz the runtime keeps gameplay and the game's frame-counted timing windows at real time; hit-stops still count frames, so they are a little shorter there. Actual frame rate depends on the GPU, driver, scene and thermal limits; see [Measured performance](#measured-performance).
+The launcher and the in-game settings panel expose resolution, frame-rate cap, display rate, FSR 1 and anisotropic filtering settings. Ultrawide (21:9, 32:9) is an experimental option: the 3D picture widens, menus and the HUD keep their shape, and movies stay 16:9. Above 60 Hz the runtime keeps gameplay and the game's frame-counted timing windows at real time; hit-stops still count frames, so they are a little shorter there. Actual frame rate depends on the GPU, driver, scene and thermal limits; see [Measured performance](#measured-performance).
 
 ### Does it work on macOS?
 A macOS build exists, but it has not been fully tested and is not listed as supported. Windows, Linux / Steam Deck and Android are the supported platforms.

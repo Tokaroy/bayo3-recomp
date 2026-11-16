@@ -298,8 +298,13 @@ void frame_sig_flush(uint64_t presents) {
     std::string ch;
     for (auto& [a, b] : g_sig.blocks)
         if (replay::fnv(2166136261u, b.p, b.size) != b.hash && (changed++, ch.size() < 800)) ch += b.name;
-    log("fsig %llu: %.1f ms, %u draws, order %08x:%s | %zu blocks, %u zero:%s | %u rewritten:%s | watch%s | diff%s",
-        (unsigned long long)presents, ms, g_sig.draws, g_sig.order, g_sig.passes.c_str(), g_sig.blocks.size(),
+    // The vertex stage's uniform blocks as they are at the present (cameras, object matrices): a frame whose state
+    // equals the frame before's is one the game drew again without moving anything (its logic did not step).
+    uint32_t state = 2166136261u;
+    for (auto& [a, b] : g_sig.blocks)
+        if (b.name.size() > 1 && b.name[1] == 'v') state = replay::fnv(state, b.p, b.size);
+    log("fsig %llu: %.1f ms, state %08x, %u draws, order %08x:%s | %zu blocks, %u zero:%s | %u rewritten:%s | watch%s | diff%s",
+        (unsigned long long)presents, ms, state, g_sig.draws, g_sig.order, g_sig.passes.c_str(), g_sig.blocks.size(),
         g_sig.zero, g_sig.zeros.c_str(), changed, ch.c_str(), g_sig.watch.c_str(), diff.c_str());
     last = std::move(g_sig.keys);
     g_sig = {};
