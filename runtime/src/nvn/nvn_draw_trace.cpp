@@ -300,11 +300,21 @@ void frame_sig_flush(uint64_t presents) {
         if (replay::fnv(2166136261u, b.p, b.size) != b.hash && (changed++, ch.size() < 800)) ch += b.name;
     // The vertex stage's uniform blocks as they are at the present (cameras, object matrices): a frame whose state
     // equals the frame before's is one the game drew again without moving anything (its logic did not step).
-    uint32_t state = 2166136261u;
+    // `same`: how many of them hold exactly what some vertex block of the frame before held (objects that did not
+    // move). At a 30 Hz logic step shown at 60 Hz it alternates between nearly all and few.
+    uint32_t state = 2166136261u, vblocks = 0, same = 0;
+    static std::set<uint32_t> before;
+    std::set<uint32_t> now_set;
     for (auto& [a, b] : g_sig.blocks)
-        if (b.name.size() > 1 && b.name[1] == 'v') state = replay::fnv(state, b.p, b.size);
-    log("fsig %llu: %.1f ms, state %08x, %u draws, order %08x:%s | %zu blocks, %u zero:%s | %u rewritten:%s | watch%s | diff%s",
-        (unsigned long long)presents, ms, state, g_sig.draws, g_sig.order, g_sig.passes.c_str(), g_sig.blocks.size(),
+        if (b.name.size() > 1 && b.name[1] == 'v') {
+            state = replay::fnv(state, b.p, b.size);
+            const uint32_t h = replay::fnv(2166136261u, b.p, b.size);
+            vblocks++, same += before.count(h) != 0;
+            now_set.insert(h);
+        }
+    before.swap(now_set);
+    log("fsig %llu: %.1f ms, same %u/%u, state %08x, %u draws, order %08x:%s | %zu blocks, %u zero:%s | %u rewritten:%s | watch%s | diff%s",
+        (unsigned long long)presents, ms, same, vblocks, state, g_sig.draws, g_sig.order, g_sig.passes.c_str(), g_sig.blocks.size(),
         g_sig.zero, g_sig.zeros.c_str(), changed, ch.c_str(), g_sig.watch.c_str(), diff.c_str());
     last = std::move(g_sig.keys);
     g_sig = {};
