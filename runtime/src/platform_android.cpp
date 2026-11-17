@@ -399,9 +399,60 @@ namespace {
 
 struct sigaction g_previous[32];  // the handlers before ours (debuggerd's)
 
+// "libbayonetta3.so+0x1234 (symbol+0x10)" for a host code address: says whether a crash is in the runtime, the
+// generated game code or the GPU driver, which a fault address alone cannot (issue #5 had only "fault address 0x48").
+void describe_host(uintptr_t pc, char* out, size_t size) {
+    Dl_info d{};
+    if (pc && dladdr(reinterpret_cast<void*>(pc), &d) && d.dli_fname) {
+        const char* base = std::strrchr(d.dli_fname, '/');
+        base = base ? base + 1 : d.dli_fname;
+        const unsigned long long off = (unsigned long long)(pc - reinterpret_cast<uintptr_t>(d.dli_fbase));
+        if (d.dli_sname)
+            std::snprintf(out, size, "%s+0x%llx (%s+0x%llx)", base, off, d.dli_sname,
+                          (unsigned long long)(pc - reinterpret_cast<uintptr_t>(d.dli_saddr)));
+        else
+            std::snprintf(out, size, "%s+0x%llx", base, off);
+    } else {
+        std::snprintf(out, size, "0x%llx (no module)", (unsigned long long)pc);
+    }
+}
+
+// The crashing host thread, its pc and lr, and the frame-pointer chain (Android's arm64 code keeps frame pointers).
+// Best effort: dladdr is not async-signal-safe, but the process is ending and debuggerd still gets the signal.
+void host_crash_report(void* ucv) {
+    char name[32] = {};
+    pthread_getname_np(pthread_self(), name, sizeof name);
+    nx::log("  host thread %d \"%s\"%s", (int)gettid(), name, nx::self_thread() ? " (a guest thread)" : "");
+#if defined(__aarch64__)
+    const auto* uc = static_cast<const ucontext_t*>(ucv);
+    if (!uc) return;
+    char buf[512];
+    const uintptr_t pc = uintptr_t(uc->uc_mcontext.pc), lr = uintptr_t(uc->uc_mcontext.regs[30]);
+    describe_host(pc, buf, sizeof buf);
+    nx::log("  host pc %s", buf);
+    describe_host(lr, buf, sizeof buf);
+    nx::log("  host lr %s", buf);
+    uintptr_t fp = uintptr_t(uc->uc_mcontext.regs[29]);
+    for (int i = 0; i < 16 && fp && !(fp & 15); i++) {
+        uintptr_t frame[2];
+        // Read a frame only from a mapped page (msync fails on an unmapped one).
+        if (msync(reinterpret_cast<void*>(fp & ~uintptr_t(4095)), 4096, MS_ASYNC) != 0) break;
+        std::memcpy(frame, reinterpret_cast<const void*>(fp), sizeof frame);
+        if (!frame[1]) break;
+        describe_host(frame[1], buf, sizeof buf);
+        nx::log("  host #%-2d %s", i, buf);
+        if (frame[0] <= fp) break;  // the chain must go up the stack
+        fp = frame[0];
+    }
+#else
+    (void)ucv;
+#endif
+}
+
 void crash(int sig, siginfo_t* info, void* uc) {
     if ((sig == SIGSEGV || sig == SIGBUS) && nx::plat::write_watch_fault(info->si_addr)) return;  // write_watch.cpp
     nx::log("CRASH: signal %d, fault address %p", sig, info->si_addr);
+    host_crash_report(uc);
     if (nx::self_thread()) {
         nx::CPU& c = nx::current_cpu();
         nx::log("  guest lr %s  sp %llx", nx::describe(c.x[30]).c_str(), (unsigned long long)c.x[31]);
