@@ -166,7 +166,7 @@ if(NX_TESTS AND NOT ANDROID)
                     COMMAND "${CMAKE_COMMAND}" -E env "CXX=${CMAKE_CXX_COMPILER}"
                         "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/bayonetta3_nvn_${check}_test.py")
             endforeach()
-            foreach(check IN ITEMS b3_scene_clock b3_debug movie_host_queue movie_timing movie_frame_source movie_decoder_pipe b3_generation_hooks audio_playback)
+            foreach(check IN ITEMS b3_scene_clock b3_debug movie_host_queue spirv_shuffle_xor movie_timing movie_frame_source movie_decoder_pipe b3_generation_hooks audio_playback)
                 add_test(NAME ${check}
                     COMMAND "${CMAKE_COMMAND}" -E env "CXX=${CMAKE_CXX_COMPILER}"
                         "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/${check}_test.py")

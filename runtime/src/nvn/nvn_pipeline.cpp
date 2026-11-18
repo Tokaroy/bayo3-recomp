@@ -27,6 +27,7 @@
 #include "nvn_draw_state.h"
 #include "nvn_ultrawide.h"
 #include "nvn_spirv_precision.h"
+#include "nvn_spirv_shuffle.h"
 #include "platform.h"
 
 namespace nx::nvn {
@@ -92,6 +93,26 @@ VkShaderStageFlags stage_bit(ShaderStage s) {
 
 // `kinds`: per vertex input location, 0 float or the integer kind of its attribute format (vertex_int_kind).
 // `unwritten`: fragment input locations the vertex stage does not write (default_unwritten_inputs).
+// Subgroup shuffles as shuffle-xor (nvn_spirv_shuffle.h): Qualcomm's Adreno 750 compiler of the 512.762 driver series
+// crashes on OpGroupNonUniformShuffle (issue #5). On for an Adreno 750 and for any Qualcomm 512.762 driver;
+// NX_SHUFFLE_XOR=1 forces it on (to check the picture on another GPU), =0 off.
+bool shuffle_as_xor() {
+    static const bool on = [] {
+        VkPhysicalDeviceProperties p{};
+        p_vkGetPhysicalDeviceProperties(vk_physical(), &p);
+        const uint32_t major = p.driverVersion >> 22, minor = (p.driverVersion >> 12) & 0x3ff;
+        const bool qualcomm = p.vendorID == 0x5143;
+        const bool affected = qualcomm && (std::strstr(p.deviceName, "Adreno (TM) 750") || (major == 512 && minor == 762));
+        const char* e = std::getenv("NX_SHUFFLE_XOR");
+        const bool v = e && e[0] ? e[0] == '1' : affected;
+        if (v || affected)
+            log("nvn/vk: subgroup shuffles as shuffle-xor %s (%s, driver %u.%u.%u%s)", v ? "on" : "off", p.deviceName,
+                major, minor, p.driverVersion & 0xfff, e && e[0] ? ", NX_SHUFFLE_XOR" : "");
+        return v;
+    }();
+    return on;
+}
+
 VkShaderModule module_of(const ShaderInfo* s, const uint8_t* kinds = nullptr, uint32_t unwritten = 0,
                          uint32_t depth_mode = 1, bool final_position = true,
                          uint32_t alpha_compare = 8, float alpha_ref = 0, uint32_t ufloat_colors = 0) {
@@ -186,6 +207,14 @@ VkShaderModule module_of(const ShaderInfo* s, const uint8_t* kinds = nullptr, ui
             if (!announced) {
                 log("nvn/vk: NX_PRECISE_POSITION=1: position arithmetic NoContraction enabled");
                 announced = true;
+            }
+        }
+        if (shuffle_as_xor()) {
+            std::vector<uint32_t> xored;
+            if (const int n = patch_shuffle_xor(code, xored)) {
+                code.swap(xored);
+                static std::atomic<int> logged{0};
+                if (logged.fetch_add(1) < 3) log("nvn/vk: shader %s: %d subgroup shuffle(s) as shuffle-xor", s->hash.c_str(), n);
             }
         }
         VkShaderModuleCreateInfo ci{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
