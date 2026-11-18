@@ -59,7 +59,7 @@ import java.util.zip.ZipOutputStream;
 // control is at least 48dp and reachable with a D-pad or stick (A selects, B backs out, Start starts, L1/R1 profile).
 public final class LauncherActivity extends Activity {
     private static final String[][] LANGUAGES = {
-            {"", "Default"}, {"en-US", "English (US)"}, {"en-GB", "English (UK)"}, {"ja", "日本語"},
+            {"", "System language"}, {"en-US", "English (US)"}, {"en-GB", "English (UK)"}, {"ja", "日本語"},
             {"fr", "Français"}, {"fr-CA", "Français (Canada)"}, {"de", "Deutsch"}, {"it", "Italiano"},
             {"es", "Español"}, {"es-419", "Español (Latinoamérica)"}, {"nl", "Nederlands"},
             {"pt", "Português"}, {"pt-BR", "Português (Brasil)"}, {"ru", "Русский"},

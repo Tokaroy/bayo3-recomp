@@ -12,6 +12,7 @@
 #include <cstring>
 #include <string>
 
+#include "language_locale.h"
 #include "platform.h"
 
 namespace nx {
@@ -41,6 +42,9 @@ inline const char* language_code_for_enum(uint32_t language) {
     return kCodes[language < kCount ? language : 1];
 }
 
+// The operating system's locale ("ko-KR", "ko_KR.UTF-8", ...), "" if unknown (language.cpp).
+std::string system_locale();
+
 // First token of a file ("es\n" -> "es"), lowercase; "" if the file is missing.
 inline std::string language_read_file(const std::string& path) {
     FILE* f = plat::fopen_utf8(path, "rb");
@@ -53,10 +57,16 @@ inline std::string language_read_file(const std::string& path) {
     return sp == std::string::npos ? s : s.substr(0, sp);
 }
 
-// The language the player configured: NX_LANGUAGE (config.txt on Android), else <data root>/language.txt, else en-US.
+// The language the player configured: NX_LANGUAGE (config.txt on Android), else <data root>/language.txt, else the
+// system's (language=system does the same), else en-US.
 inline uint64_t desired_language() {
     std::string value = language_lower_trimmed(plat::setting("language"));
     if (value.empty()) value = language_read_file(plat::data_root() + "/language.txt");
+    // Unset, or "system": the language the PC or phone is set to, as the console follows its system language.
+    if (value.empty() || value == "system") {
+        value = language_for_locale(system_locale());
+        if (value.empty()) value = "en-us";
+    }
     struct Entry { const char* code; const char* names; };
     static const Entry kTable[] = {
         {"en-US", "en en-us english americanenglish ingles"},

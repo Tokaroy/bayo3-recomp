@@ -112,7 +112,7 @@ def test_set_rewrites_in_place_and_appends_new_keys():
 def test_effective_values_use_defaults():
     conf = cfg.Conf.parse('resolution=1280x720\n')
     eq(conf.effective(cfg.SETTINGS_BY_KEY['resolution']), '1280x720', 'explicit value')
-    eq(conf.effective(cfg.SETTINGS_BY_KEY['language']), 'en-US', 'absent key uses the default')
+    eq(conf.effective(cfg.SETTINGS_BY_KEY['language']), 'system', 'absent key uses the default')
     eq(conf.get('language', None), None, 'absent key is not invented by get()')
     values = cfg.values_of(conf)
     eq(values['resolution'], '1280x720', 'values_of reads the file')

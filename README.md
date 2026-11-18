@@ -50,11 +50,11 @@ Step-by-step use of each one is in the [playing guide](docs/PLAYING.md).
 | **Graphics** | Vulkan 1.3; NVN graphics calls are translated to Vulkan |
 | **Emulation** | None. Game code is recompiled ahead of time; shaders are translated offline to SPIR-V |
 | **Game files** | Not included. You need your own legally obtained 1.2.0 ExeFS and RomFS |
-| **Status** | Playable; a full playthrough is not verified. The Prologue story transition has a loading issue |
+| **Status** | Playable from the Prologue into Chapter 1 and beyond; a full playthrough is not verified |
 | **Performance** | Windows median 89.2 fps; Steam Deck 50–60 fps; Snapdragon 8 Elite 54–60 fps. Different scenes and conditions |
 | **License** | GPL-3.0-or-later for the combined work; original MIT portions under [LICENSE-MIT](LICENSE-MIT) |
 | **Repository** | https://github.com/aoxzh/bayo3-recomp |
-| **Last updated** | 2026-11-16 |
+| **Last updated** | 2026-11-19 |
 
 ## Build it with one sentence
 

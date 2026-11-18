@@ -166,7 +166,7 @@ if(NX_TESTS AND NOT ANDROID)
                     COMMAND "${CMAKE_COMMAND}" -E env "CXX=${CMAKE_CXX_COMPILER}"
                         "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/bayonetta3_nvn_${check}_test.py")
             endforeach()
-            foreach(check IN ITEMS b3_scene_clock b3_debug movie_host_queue spirv_shuffle_xor movie_timing movie_frame_source movie_decoder_pipe b3_generation_hooks audio_playback)
+            foreach(check IN ITEMS b3_scene_clock b3_debug movie_host_queue spirv_shuffle_xor language_locale movie_timing movie_frame_source movie_decoder_pipe b3_generation_hooks audio_playback)
                 add_test(NAME ${check}
                     COMMAND "${CMAKE_COMMAND}" -E env "CXX=${CMAKE_CXX_COMPILER}"
                         "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/${check}_test.py")
@@ -380,6 +380,7 @@ set(NX_RUNTIME_SOURCES
     runtime/src/ipc.cpp
     runtime/src/svc_am.cpp
     runtime/src/svc_set.cpp
+    runtime/src/language.cpp
     runtime/src/svc_misc.cpp
     runtime/src/svc_nv.cpp
     runtime/src/svc_time.cpp
@@ -495,7 +496,7 @@ if(ANDROID)
         set(NX_ANDROID_LIBRARY_KIND SHARED)
     endif()
     add_library(${NX_GAME} ${NX_ANDROID_LIBRARY_KIND} ${NX_RUNTIME_SOURCES} runtime/src/platform_android.cpp
-        runtime/src/platform_android_input.cpp runtime/src/platform_android_audio.cpp runtime/src/memguard_android.cpp
+        runtime/src/platform_android_input.cpp runtime/src/platform_android_rumble.cpp runtime/src/platform_android_audio.cpp runtime/src/memguard_android.cpp
         runtime/src/movie_android.cpp
         "${GLUE}/android_native_app_glue.c")
     find_path(NX_VULKAN_INCLUDE vulkan/vulkan.h HINTS "${NX_VULKAN_SDK}/include" "${NX_VULKAN_SDK}/Include")

@@ -28,6 +28,7 @@ GROUPS = tuple(GROUP_TITLES)
 LIST_GROUPS = ('mods',)  # tabs filled from the disk (mods_of), not from SETTINGS
 
 LANGUAGES = (
+    ('system', 'Same as the system'),
     ('en-US', 'English (US)'),
     ('en-GB', 'English (UK)'),
     ('ja', 'Japanese'),
@@ -135,8 +136,8 @@ SETTINGS = (
                  'rebound with key_<input>= lines in the settings file.'),
     Setting('mouse_sens', 'Mouse speed', 'choice', 'input', choices=MOUSE_SENS),
     Setting('mouse_invert_y', 'Invert mouse Y', 'bool', 'input', default='0'),
-    Setting('language', 'Language', 'choice', 'system', default='en-US', choices=LANGUAGES,
-            help='The game text language.'),
+    Setting('language', 'Language', 'choice', 'system', default='system', choices=LANGUAGES,
+            help='The game text language. Same as the system: the language Windows or Linux is set to.'),
     Setting('handheld', 'Handheld mode', 'bool', 'system', default='0',
             help='The game renders 1280 x 720 instead of docked 1600 x 900 (a lighter GPU load).'),
     Setting('log', 'Log file', 'text', 'system', help='Default: <repo>/private/b3.log.'),

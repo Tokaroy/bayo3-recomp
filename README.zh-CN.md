@@ -50,11 +50,11 @@
 | **图形** | Vulkan 1.3；NVN 图形调用转换为 Vulkan |
 | **模拟器** | 不使用。游戏代码提前重编译，着色器离线转换为 SPIR-V |
 | **游戏文件** | 不附带。需要你自行合法取得 1.2.0 的 ExeFS 和 RomFS |
-| **状态** | 可玩；尚未验证完整通关。序章剧情转场有加载问题 |
+| **状态** | 可玩，序章可正常进入第一章及之后；尚未验证完整通关 |
 | **性能** | Windows 中位 89.2 fps；Steam Deck 50–60 fps；Snapdragon 8 Elite 54–60 fps。场景和条件不同 |
 | **许可** | 组合作品 GPL-3.0-or-later；原始 MIT 部分见 [LICENSE-MIT](LICENSE-MIT) |
 | **仓库** | https://github.com/aoxzh/bayo3-recomp |
-| **最后更新** | 2026-11-16 |
+| **最后更新** | 2026-11-19 |
 
 ## 一句话构建
 

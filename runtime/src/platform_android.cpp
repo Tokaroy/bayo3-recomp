@@ -710,6 +710,9 @@ extern "C" void android_main(android_app* app) {
             started = true;
             start_thread(game_thread, nullptr, 256ull << 20);  // the guest main thread; deep host recursion
         }
-        if (started) sleep_ns(2'000'000);
+        if (started) {
+            android_rumble_tick(app);
+            sleep_ns(2'000'000);
+        }
     }
 }

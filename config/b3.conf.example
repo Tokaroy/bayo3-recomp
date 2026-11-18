@@ -49,7 +49,7 @@ mouse_sens=              # mouse camera speed; empty = 1.0
 mouse_invert_y=0         # 1: moving the mouse up turns the camera down
 
 # ---- System ----------------------------------------------------------------------------------
-language=en-US           # en-US, en-GB, ja, fr, fr-CA, de, it, es, es-419, ko, ru, zh-Hans, zh-Hant
+language=system          # system (the PC's language), en-US, en-GB, ja, fr, fr-CA, de, it, es, es-419, ko, ru, zh-Hans, zh-Hant
 handheld=0               # 1: the game renders 1280x720 (handheld) instead of 1600x900 (docked): lighter; Steam Deck
 # log=/path/to/b3.log   # default: <repo>/private/b3.log
 
