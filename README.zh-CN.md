@@ -37,6 +37,7 @@
 | **多种输入** | 手柄（任天堂或 Xbox 键位）、键盘鼠标（每个输入都可以重新绑定），以及 Android 上的触屏 |
 | **Steam Deck** | SteamOS 上不用安装任何东西。启动器的 Desktop shortcut 按钮生成一个可以添加到 Steam 的入口，`--play` 可在游戏模式下直接进游戏 |
 | **更新保留已有构建** | 换新版本后，Update 只重做有变化的部分，不用重新跑整个安装 |
+| **截图、帧率、问题报告** | 按 F12（Linux 上也可按手柄的分享/截图键）把 PNG 存到游戏数据目录的 `screenshots/`。启动器的 Show frame rate 开关在角落显示帧率，Make a bug report 把日志和设置打成 zip 方便提交 issue，里面不含任何游戏文件 |
 
 每一项的具体用法见[游玩指南](docs/PLAYING.md)。
 

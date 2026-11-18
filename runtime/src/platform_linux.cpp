@@ -46,6 +46,7 @@
 #include "kernel.h"
 #include "pad_config.h"
 #include "pad_rumble.h"
+#include "screenshot.h"
 #include "platform.h"
 #include "render_scale.h"
 
@@ -664,6 +665,10 @@ int main() {
                 if ((e.key.scancode == SDL_SCANCODE_F11 ||
                      (e.key.scancode == SDL_SCANCODE_RETURN && (e.key.mod & SDL_KMOD_ALT))) && g_window)
                     SDL_SetWindowFullscreen(g_window, !(SDL_GetWindowFlags(g_window) & SDL_WINDOW_FULLSCREEN));
+                if (e.key.scancode == SDL_SCANCODE_F12 && !e.key.repeat) nx::g_screenshot_request = true;
+                break;
+            case SDL_EVENT_GAMEPAD_BUTTON_DOWN:  // the Share / Capture button (Xbox Series, DualSense mic, Switch Pro)
+                if (e.gbutton.button == SDL_GAMEPAD_BUTTON_MISC1) nx::g_screenshot_request = true;
                 break;
             default:
                 break;

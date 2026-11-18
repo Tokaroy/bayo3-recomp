@@ -108,6 +108,8 @@ SETTINGS = (
     Setting('fsr', 'FSR 1 upscale', 'bool', 'video', default='0',
             help='Upscale and sharpen when the rendered picture is smaller than the output window.'),
     Setting('fsr_sharp', 'FSR sharpness', 'choice', 'video', choices=FSR_SHARPNESS, help='Only with FSR 1 on.'),
+    Setting('fps_overlay', 'Show frame rate', 'bool', 'video', default='0',
+            help='The frame rate in the top left corner of the game.'),
     Setting('fps_cap', 'Frame rate cap', 'choice', 'video', choices=FPS_CAPS,
             help='Optionally cap at 30 fps; used in the documented Snapdragon 8 Gen 2 / Adreno 740 combat tests. See Performance for heat-related limits.'),
     Setting('display_hz', 'Frame rate', 'choice', 'video', choices=DISPLAY_HZ,

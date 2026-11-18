@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <map>
 #include <string>
 #include <vector>
@@ -16,6 +17,8 @@
 
 #include "nvn_vk.h"
 #include "platform.h"
+#include "png_write.h"
+#include "screenshot.h"
 
 namespace nx::nvn {
 
@@ -256,7 +259,20 @@ uint32_t frame_dump_every() {
 // NX_DUMP_FRAMES, or on demand while playing: a file named dump_frames in the data folder (optionally holding
 // "<count> [<every>]", default 40 frames, every 2nd) dumps the next presented frames, then is deleted. The game runs
 // at full speed until then, for glitches that only show in a long session (DEBUG-2 #77). Checked once a second.
+namespace {
+bool g_shot_pending = false;      // the frame being read back is a screenshot (F12): a PNG in screenshots/
+bool g_periodic_pending = false;  // ... and/or one of the debug dumps above: a PPM in frames/
+bool frame_dump_due_periodic(uint64_t presents);
+}  // namespace
+
 bool frame_dump_due(uint64_t presents) {
+    g_shot_pending = g_screenshot_request.exchange(false, std::memory_order_relaxed);
+    g_periodic_pending = frame_dump_due_periodic(presents);
+    return g_shot_pending || g_periodic_pending;
+}
+
+namespace {
+bool frame_dump_due_periodic(uint64_t presents) {
     static uint64_t left = 0, every = 2, next_check = 0;
     if (presents >= next_check) {
         next_check = presents + 60;
@@ -291,6 +307,7 @@ bool frame_dump_due(uint64_t presents) {
     }
     return frame_dump_every() && presents % frame_dump_every() == 0;
 }
+}  // namespace
 
 namespace {
 
@@ -334,9 +351,57 @@ bool frame_dump_record(VkCommandBuffer cb, GpuImage& img) {
     return true;
 }
 
+// F12 (or a pad's Share button): the presented frame as <data root>/screenshots/Bayonetta3-<date>-<time>.png.
+void screenshot_write(const uint8_t* px, const GpuImage& img) {
+    const bool bgra = img.format == VK_FORMAT_B8G8R8A8_UNORM;
+    std::vector<uint8_t> rgb(size_t(img.width) * img.height * 3);
+    for (size_t i = 0, n = size_t(img.width) * img.height; i < n; i++) {
+        const uint8_t* s = px + i * 4;
+        rgb[i * 3 + 0] = bgra ? s[2] : s[0];
+        rgb[i * 3 + 1] = s[1];
+        rgb[i * 3 + 2] = bgra ? s[0] : s[2];
+    }
+    const std::vector<uint8_t> png = encode_png_rgb(rgb.data(), img.width, img.height);
+    const std::string dir = plat::data_root() + "/screenshots";
+    plat::make_dirs(dir);
+    const std::time_t now = std::time(nullptr);
+    std::tm tm{};
+#if defined(_WIN32)
+    localtime_s(&tm, &now);
+#else
+    localtime_r(&now, &tm);
+#endif
+    char stamp[32];
+    std::strftime(stamp, sizeof stamp, "%Y%m%d-%H%M%S", &tm);
+    std::string path = dir + "/Bayonetta3-" + stamp + ".png";
+    for (int k = 2; k < 100; k++) {  // two in the same second
+        FILE* probe = plat::fopen_utf8(path, "rb");
+        if (!probe) break;
+        std::fclose(probe);
+        path = dir + "/Bayonetta3-" + stamp + "-" + std::to_string(k) + ".png";
+    }
+    bool ok = false;
+    if (FILE* f = plat::fopen_utf8(path, "wb")) {
+        ok = std::fwrite(png.data(), 1, png.size(), f) == png.size();
+        ok = std::fclose(f) == 0 && ok;
+    }
+    if (ok)
+        log("screenshot: %s (%ux%u)", path.c_str(), img.width, img.height);
+    else
+        log("screenshot: could not write %s", path.c_str());
+}
+
 void frame_dump_write(const GpuImage& img, uint64_t frame) {
     void* p = nullptr;
     if (p_vkMapMemory(vk_device(), g_readback.memory, 0, VK_WHOLE_SIZE, 0, &p) != VK_SUCCESS) return;
+    if (g_shot_pending) {
+        g_shot_pending = false;
+        screenshot_write(static_cast<const uint8_t*>(p), img);
+    }
+    if (!g_periodic_pending) {
+        p_vkUnmapMemory(vk_device(), g_readback.memory);
+        return;
+    }
     std::string dir = plat::data_root() + "/frames";
     plat::make_dirs(dir);
     char name[64];

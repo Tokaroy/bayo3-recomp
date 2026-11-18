@@ -37,6 +37,7 @@ These come from different scenes and conditions and are not directly comparable.
 | **Any input** | Controller with Nintendo or Xbox button layout, keyboard and mouse with every input rebindable, and touch controls on Android |
 | **Steam Deck** | Nothing to install on SteamOS. The launcher's Desktop shortcut button makes an entry you can add to Steam, and `--play` starts the game directly from Game Mode |
 | **Updates keep your build** | After a new release, Update remakes only what changed instead of running the whole setup again |
+| **Screenshots, frame rate, bug reports** | F12 (on Linux also a controller's Share/Capture button) saves a PNG to `screenshots/` in the game's data folder. The launcher's Show frame rate switch puts the frame rate in the corner, and Make a bug report zips the logs and settings for an issue, with no game files in it |
 
 Step-by-step use of each one is in the [playing guide](docs/PLAYING.md).
 

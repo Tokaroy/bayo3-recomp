@@ -47,6 +47,7 @@ void pipeline_cache_flush();  // nvn_pipeline_cache.cpp; the platform's normal e
 #include "kernel.h"
 #include "pad_config.h"
 #include "pad_rumble.h"
+#include "screenshot.h"
 #include "platform.h"
 
 namespace nx {
@@ -546,6 +547,7 @@ static LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM w, LPARAM l) {
             break;
         case WM_KEYDOWN:
             if (w == VK_F11) toggle_fullscreen(h);
+            if (w == VK_F12 && !(l & (1 << 30))) nx::g_screenshot_request = true;  // screenshots/ (nvn_debug.cpp)
             if (w == VK_F10) mouse_capture(h, false);
             if (w == VK_F1 && !(l & (1 << 30))) {  // not the auto-repeat of a held key
                 panel_toggle();

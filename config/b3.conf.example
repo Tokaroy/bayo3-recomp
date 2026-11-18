@@ -16,6 +16,7 @@ resolution=1600x900
 fullscreen=0             # 1: fullscreen (F11 or Alt+Enter toggles at any time)
 fsr=0                    # 1: FidelityFX Super Resolution 1 when the window is larger than the render
 fsr_sharp=               # FSR sharpening: 0, 1, 2; empty = 0.2
+fps_overlay=0            # 1: the frame rate in the top left corner of the game
 fps_cap=                 # empty = runtime/game pacing; 30 = 30 fps mode; Android defaults to 30.
 display_hz=              # the rate the game paces itself by: 60, 90, 120, 144; empty = the display's own.
                          # Above 60 the runtime converts the gameplay step and the game's frame-counted windows

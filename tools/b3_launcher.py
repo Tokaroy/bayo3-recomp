@@ -610,7 +610,7 @@ class Button(tk.Label):
 # create_window and shown for the group on screen.
 
 class Launcher(tk.Tk):
-    MENU = ('play', 'settings', 'log', 'quit')
+    MENU = ('play', 'settings', 'log', 'report', 'quit')
 
     def __init__(self):
         super().__init__()
@@ -768,7 +768,8 @@ class Launcher(tk.Tk):
         self._text(left, px(178), 'Native build of the Switch game · bring your own game files', (UI, 10), MUTED)
         # The menu: large serif words, the selected one gold with a cyan diamond, as a pad-first menu reads.
         labels = {'play': 'Stop game' if self.proc is not None else 'Start game', 'settings': 'Settings',
-                  'log': 'Hide game log' if self.log_shown else 'Game log', 'quit': 'Quit',
+                  'log': 'Hide game log' if self.log_shown else 'Game log', 'report': 'Make a bug report',
+                  'quit': 'Quit',
                   'setup': 'Setting up…' if self.task else 'Set up from my dump',
                   'rebuild': 'Rebuilding…' if self.task else 'Rebuild'}
         step = px(54)
@@ -1041,8 +1042,8 @@ class Launcher(tk.Tk):
         if not cfg.player_flow() or not (self.root / 'tools/b3_win.py').is_file():
             return self.MENU
         if not cfg.install_state(self.root)['built']:
-            return ('setup', 'settings', 'log', 'quit')
-        return ('play', 'rebuild', 'settings', 'log', 'quit')
+            return ('setup', 'settings', 'log', 'report', 'quit')
+        return ('play', 'rebuild', 'settings', 'log', 'report', 'quit')
 
     def _menu_activate(self):
         menu = self._menu()
@@ -1058,6 +1059,8 @@ class Launcher(tk.Tk):
             self.show_settings()
         elif key == 'log':
             self.toggle_log()
+        elif key == 'report':
+            self.make_report()
         elif key == 'quit':
             self.destroy()
 
@@ -1346,6 +1349,23 @@ class Launcher(tk.Tk):
         except OSError:
             pass
         self._set_status('Stopping…')
+
+    def make_report(self):
+        """The logs, crash reports and settings in one zip for an issue (tools/b3_report.py), and its folder opened."""
+        import b3_report
+        try:
+            out = b3_report.make_report(self.root)
+        except OSError as e:
+            self._set_status(f'Could not make the bug report: {e}', bad=True)
+            return
+        self._set_status(f'Bug report: {self._short(out)} (attach it to your issue; no game files in it)')
+        try:
+            if sys.platform == 'win32':
+                subprocess.Popen(['explorer', '/select,', str(out)])
+            else:
+                subprocess.Popen(['open' if sys.platform == 'darwin' else 'xdg-open', str(out.parent)])
+        except OSError:
+            pass  # the status line already names the file
 
     def toggle_log(self):
         self.log_shown = not self.log_shown

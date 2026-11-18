@@ -38,6 +38,7 @@ jobs:
         run: |
           python3 tests/test_b3_win.py
           python3 tests/test_b3_launcher_config.py
+          python3 tests/test_b3_report.py
           python3 tests/test_b3_launcher_task.py
           python3 tools/b3_data.py --help > /dev/null
       # The recompiler's analysis imports capstone (and lz4 through nso), which the runners do not ship.
@@ -107,6 +108,7 @@ jobs:
         run: |
           python tests/test_b3_win.py
           python tests/test_b3_launcher_config.py
+          python tests/test_b3_report.py
           python tests/test_b3_launcher_task.py
       - name: Toolset cache key
         id: key

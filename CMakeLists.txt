@@ -166,7 +166,7 @@ if(NX_TESTS AND NOT ANDROID)
                     COMMAND "${CMAKE_COMMAND}" -E env "CXX=${CMAKE_CXX_COMPILER}"
                         "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/bayonetta3_nvn_${check}_test.py")
             endforeach()
-            foreach(check IN ITEMS b3_scene_clock b3_debug movie_host_queue spirv_shuffle_xor language_locale movie_timing movie_frame_source movie_decoder_pipe b3_generation_hooks audio_playback)
+            foreach(check IN ITEMS b3_scene_clock b3_debug movie_host_queue spirv_shuffle_xor language_locale png_write movie_timing movie_frame_source movie_decoder_pipe b3_generation_hooks audio_playback)
                 add_test(NAME ${check}
                     COMMAND "${CMAKE_COMMAND}" -E env "CXX=${CMAKE_CXX_COMPILER}"
                         "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/${check}_test.py")
@@ -243,6 +243,9 @@ if(NX_TESTS AND NOT ANDROID)
         # The launcher's settings model (private/b3.conf): no Tk, no display, no game, so it runs everywhere.
         add_test(NAME b3_launcher_config
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/test_b3_launcher_config.py")
+        # tools/b3_report.py: the bug report zip holds logs, crash reports and settings, never game data.
+        add_test(NAME b3_report
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/test_b3_report.py")
         # tools/b3_win.py (the Windows setup and runner): settings rules, dump layouts, links, the program switch.
         add_test(NAME b3_win
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/test_b3_win.py")
