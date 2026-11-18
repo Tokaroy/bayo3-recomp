@@ -105,7 +105,7 @@ include(cmake/NXSanitizers.cmake)
 
 if(NX_TESTS AND NOT ANDROID)
     enable_testing()
-    add_executable(am_lifecycle_test tests/am_lifecycle_test.cpp)
+    add_executable(am_lifecycle_test tests/am_lifecycle_test.cpp runtime/src/language.cpp)
     target_include_directories(am_lifecycle_test PRIVATE runtime/include runtime/src)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$" AND NOT MSVC)
         target_compile_options(am_lifecycle_test PRIVATE -march=x86-64-v3)
