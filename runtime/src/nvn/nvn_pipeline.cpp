@@ -1214,8 +1214,9 @@ std::unique_ptr<PipeBuild> prepare_graphics_pipeline(const PipelineKey& key, con
     ds.depthCompareOp = vk_compare(key.depth.depth_func);
     // EQUAL after a depth pre-pass (the colour pass does not write depth) needs both passes to compute bit-identical
     // depth; two translated shaders compiled separately by Metal do not, and Wonder's whole course colour pass was
-    // discarded (only the sky showed). LESS_OR_EQUAL keeps what EQUAL keeps for opaque geometry after a pre-pass.
-    if (key.depth.depth_func == 3 && !key.depth.depth_write) {
+    // discarded (only the sky showed). LESS_OR_EQUAL keeps what EQUAL keeps for opaque geometry after a pre-pass, but
+    // not for alpha-tested geometry (equal_as_lequal, nvn_raster.cpp): only on Apple.
+    if (key.depth.depth_func == 3 && !key.depth.depth_write && equal_as_lequal()) {
         ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         static const bool always = std::getenv("NX_EQUAL_ALWAYS") != nullptr;  // diagnostic: EQUAL passes test nothing
         if (always) ds.depthCompareOp = VK_COMPARE_OP_ALWAYS;

@@ -429,6 +429,10 @@ struct PolygonInfo {
 // toward the camera (DEBUG.md #60). NX_EQUAL_SLACK=<units> (default 4, 0: off).
 // NX_EQUAL_SLACK_FACTOR=<factor> overrides the extra slope tolerance (default 0).
 bool equal_slack_pass(const DepthStencilInfo& d);
+// Whether an EQUAL test without depth writes runs as LESS_OR_EQUAL (with that slack). Only on Apple (Metal), where
+// the two passes' depth differed; elsewhere positions are invariant and EQUAL stays EQUAL, as the console has it.
+// NX_EQUAL_AS_LEQUAL=1/0 overrides.
+bool equal_as_lequal();
 
 struct TargetViews {  // SetRenderTargets' blob: level and layer per color target (0..7) and depth (8)
     uint8_t level[9] = {};

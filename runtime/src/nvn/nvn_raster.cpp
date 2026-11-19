@@ -88,7 +88,22 @@ bool equal_slack_pass(const DepthStencilInfo& d) {
         return e && e[0] == '1';
     }();
     if (d.depth_write || equal_slack_units() == 0.0f) return false;
-    return d.depth_func == 3 || (d.depth_func == 5 && greater);
+    return (d.depth_func == 3 && equal_as_lequal()) || (d.depth_func == 5 && greater);
+}
+
+// Alpha-tested foliage is the case LESS_OR_EQUAL breaks: its pre-pass discards the card's clear texels, but the colour
+// pass draws the whole card, and every clear texel in front of the ground passed: grass, bushes and leaves as solid
+// light-green blocks (issue #7). EQUAL fails there, as on the console. Witch Time and B3-Express keep EQUAL too.
+bool equal_as_lequal() {
+    static const bool on = [] {
+        if (const char* e = std::getenv("NX_EQUAL_AS_LEQUAL"); e && e[0]) return e[0] == '1';
+#if defined(__APPLE__)
+        return true;
+#else
+        return false;
+#endif
+    }();
+    return on;
 }
 
 namespace replay {

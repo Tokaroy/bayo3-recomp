@@ -99,6 +99,23 @@ GpuImage* image_of(uint64_t guest) {
                 static uint64_t shares = 0;
                 if (++shares % 1000 == 1) log("nvn/vk: %llu textures shared an image with another", (unsigned long long)shares);
                 t->image = shared;
+                // An image filled from guest memory (not rendered, not given texels) shows that memory as it was at its
+                // upload. A texture made over the same memory since may have new contents: the CPU wrote them before
+                // this texture existed, so no flush marked it, and pool snapshots of a finalized texture keep the old
+                // image alive. Going back to the title from the hub, the title's light cube map came out as the hub's
+                // (flat, washed-out demons, issue #6). The new texture reads its memory again, as the hardware does.
+                // NX_SHARE_REUPLOAD=0: as before.
+                static const bool reupload = [] {
+                    const char* e = std::getenv("NX_SHARE_REUPLOAD");
+                    return !(e && e[0] == '0');
+                }();
+                if (reupload && shared->uploaded && !shared->rendered && !shared->texels) {
+                    t->mark_dirty(0, UINT64_MAX);
+                    static uint64_t again = 0;
+                    if (++again % 1000 == 1)
+                        log("nvn/vk: %llu shared images read from guest memory again for a new texture",
+                            (unsigned long long)again);
+                }
                 return shared.get();
             }
     if ((t->image = reuse_image(*t))) return t->image.get();

@@ -130,7 +130,18 @@ Upload dedup_upload(const uint8_t* p,uint64_t n,uint64_t padded,uint64_t align, 
 int main(int argc,char** argv){
     try {
         unsetenv("NX_EQUAL_SLACK");unsetenv("NX_EQUAL_SLACK_FACTOR");
-        unsetenv("NX_GREATER_SLACK");unsetenv("NX_DEPTH_BIAS_UNITS");
+        unsetenv("NX_GREATER_SLACK");unsetenv("NX_DEPTH_BIAS_UNITS");unsetenv("NX_EQUAL_AS_LEQUAL");
+        if(argc>1 && std::strcmp(argv[1],"console-equal")==0){
+            // Default off Apple: EQUAL stays EQUAL and gets no slack (issue #7, alpha-tested foliage).
+            DepthStencilInfo d{};d.depth_test=1;d.depth_func=3;
+#if defined(__APPLE__)
+            check(equal_slack_pass(d),"Metal keeps read-only EQUAL as LESS_OR_EQUAL with slack");
+#else
+            check(!equal_slack_pass(d),"read-only EQUAL stays exact by default");
+#endif
+            std::puts("console-equal ok");return 0;
+        }
+        setenv("NX_EQUAL_AS_LEQUAL","1",1);  // the slack mechanics below apply when EQUAL runs as LESS_OR_EQUAL
         float tolerance=4.0f,slope=0.0f;
         if(argc>1 && std::strcmp(argv[1],"old-slope")==0){setenv("NX_EQUAL_SLACK_FACTOR","1",1);slope=1.0f;}
         if(argc>1 && std::strcmp(argv[1],"no-slack")==0){setenv("NX_EQUAL_SLACK","0",1);tolerance=0.0f;}

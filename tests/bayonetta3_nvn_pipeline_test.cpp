@@ -147,6 +147,7 @@ VkStencilOp vk_stencil_op(uint32_t) { return VK_STENCIL_OP_KEEP; }
 VkBlendFactor vk_blend_factor(uint32_t v) { return VkBlendFactor(v); }
 VkBlendOp vk_blend_op(uint32_t v) { return VkBlendOp(v); }
 bool equal_slack_pass(const DepthStencilInfo&) { return false; }
+bool equal_as_lequal() { return false; }
 bool render_pass_objects() { return false; }
 VkRenderPass compatible_render_pass(uint32_t, const VkFormat*, VkFormat) { return {}; }
 }

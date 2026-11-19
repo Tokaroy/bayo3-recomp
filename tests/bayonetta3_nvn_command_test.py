@@ -18,5 +18,5 @@ with tempfile.TemporaryDirectory(prefix='bayo3-nvn-command-') as tmp:
                     '-I' + str(root / 'runtime/include'), '-I' + str(root / 'runtime/src'),
                     '-I' + str(vulkan), str(root / 'tests/bayonetta3_nvn_command_test.cpp'),
                     *[str(root / 'runtime/src/nvn' / p) for p in sources], '-o', binary], check=True)
-    for mode in ('default', 'old-slope', 'no-slack', 'more-units'):
+    for mode in ('default', 'old-slope', 'no-slack', 'more-units', 'console-equal'):
         subprocess.run([binary, mode], check=True)
